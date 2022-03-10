@@ -1,0 +1,36 @@
+@startuml
+Client -> Play: PUT "/{variant}/games/{gameId}/moves"
+note right
+    PUT /service/play-x/games/<uuid>/moves
+    {
+    "clock": ...,
+    "index": ...,
+    "move":  ...,
+    "metadata": {
+        "toggledMove": <int>,
+        "moveHoldTime": <int>,
+        "changeOfHeartMove": <int>,
+        "clockms": <int>
+        }
+    }
+end note
+Play -> Play: calculate `botMove` using `clockms`
+Play -> Redis: store Meta Data
+note right
+    Meta Data from Move plus `botMove` etc
+end note
+Play -> Play: update toggle rate
+Play -> Metrics: record processing time
+Play -> Client: Response
+
+Client -> Play: Game Finished (New Cheat Detection Service checks for Cheating)
+Play -> Cheat_Detection_Service: Call with cheatMetaData and user data
+Cheat_Detection_Service -> Cheat_Detection_Service: Check for suspicious toggle rate etc.
+note left
+    rate IS suspicious
+end note
+Cheat_Detection_Service -> Web_BE: "POST /webhook/cheat/submissions"
+Web_BE -> Cheat_Detection_Service: Response
+Cheat_Detection_Service -> Play: Response
+Play -> Client: Response
+@enduml
